@@ -3,11 +3,11 @@ import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
-import productRoutes from './routes/productRoutes.js';
-import cartRoutes from './routes/cartRoutes.js';
-import orderRoutes from './routes/orderRoutes.js';
-import reviewRoutes from './routes/reviewRoutes.js';
-import { stripeWebhook } from './controllers/orderController.js';
+import productRoutes from "./routes/productRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
+import { stripeWebhook } from "./controllers/orderController.js";
 
 dotenv.config();
 connectDB();
@@ -15,10 +15,10 @@ connectDB();
 const app = express();
 
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'https://shopsphere-admin-omega.vercel.app',
-  // add your customer-frontend Vercel URL here too, once that's deployed
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://shopsphere-admin-omega.vercel.app",
+  " https://shopsphere-frontend-indol.vercel.app/",
 ];
 app.use(
   cors({
@@ -26,25 +26,25 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
-  })
+  }),
 );
 // Stripe webhook needs raw body — must come BEFORE express.json()
 app.post(
-  '/api/orders/webhook',
-  express.raw({ type: 'application/json' }),
-  stripeWebhook
+  "/api/orders/webhook",
+  express.raw({ type: "application/json" }),
+  stripeWebhook,
 );
 
 app.use(express.json());
 app.use("/api/auth", authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api', reviewRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api", reviewRoutes);
 
 app.get("/", (req, res) => {
   res.send("API is running...");
