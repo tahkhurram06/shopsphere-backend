@@ -17,11 +17,9 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
-  // add your deployed frontend URLs here once you deploy, e.g.:
-  // 'https://shopsphere.vercel.app',
-  // 'https://shopsphere-admin.vercel.app',
+  'https://shopsphere-admin-omega.vercel.app',
+  // add your customer-frontend Vercel URL here too, once that's deployed
 ];
-
 app.use(
   cors({
     origin: (origin, callback) => {
