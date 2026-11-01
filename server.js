@@ -18,7 +18,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "https://shopsphere-admin-omega.vercel.app",
-  " https://shopsphere-frontend-indol.vercel.app/",
+  "https://shopsphere-frontend-indol.vercel.app",
 ];
 app.use(
   cors({
