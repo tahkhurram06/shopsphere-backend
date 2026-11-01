@@ -6,6 +6,7 @@ import {
   getAllOrders,
   updateOrderStatus,
   createCheckoutSession,
+  cancelOrder,
 } from '../controllers/orderController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 
@@ -17,5 +18,6 @@ router.get('/', protect, adminOnly, getAllOrders);
 router.get('/:id', protect, getOrderById);
 router.put('/:id/status', protect, adminOnly, updateOrderStatus);
 router.post('/:id/create-checkout-session', protect, createCheckoutSession);
+router.put('/:id/cancel', protect, cancelOrder);
 
 export default router;

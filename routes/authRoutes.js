@@ -1,5 +1,14 @@
 import express from 'express';
-import { registerUser, loginUser, getMe, getUsers, getUserById, updateProfile } from '../controllers/authController.js';
+import {
+  registerUser,
+  loginUser,
+  getMe,
+  getUsers,
+  getUserById,
+  updateProfile,
+  getWishlist,
+  toggleWishlist,
+} from '../controllers/authController.js';
 import { protect, adminOnly } from '../middleware/auth.js';
 import { loginLimiter } from '../middleware/rateLimiter.js';
 
@@ -11,5 +20,7 @@ router.get('/me', protect, getMe);
 router.put('/me', protect, updateProfile);
 router.get('/users', protect, adminOnly, getUsers);
 router.get('/users/:id', protect, adminOnly, getUserById);
+router.get('/wishlist', protect, getWishlist);
+router.post('/wishlist/:productId', protect, toggleWishlist);
 
 export default router;

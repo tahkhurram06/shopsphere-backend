@@ -218,3 +218,25 @@ export const stripeWebhook = async (req, res) => {
 
   res.json({ received: true });
 };
+// @desc   Cancel your own order (only if still pending)
+// @route  PUT /api/orders/:id/cancel
+export const cancelOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    if (order.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+    if (order.status !== "pending") {
+      return res.status(400).json({ message: "Only pending orders can be cancelled" });
+    }
+
+    order.status = "cancelled";
+    await order.save();
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

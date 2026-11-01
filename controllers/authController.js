@@ -86,6 +86,7 @@ export const getUserById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 // @desc   Update logged-in user's profile (name, and optionally password)
 // @route  PUT /api/auth/me
 export const updateProfile = async (req, res) => {
@@ -118,6 +119,41 @@ export const updateProfile = async (req, res) => {
       email: user.email,
       role: user.role,
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc   Get logged-in user's wishlist (populated)
+// @route  GET /api/auth/wishlist
+export const getWishlist = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate('wishlist');
+    res.json(user.wishlist);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc   Toggle a product in/out of the logged-in user's wishlist
+// @route  POST /api/auth/wishlist/:productId
+export const toggleWishlist = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const { productId } = req.params;
+    const idx = user.wishlist.findIndex((id) => id.toString() === productId);
+
+    let added;
+    if (idx > -1) {
+      user.wishlist.splice(idx, 1);
+      added = false;
+    } else {
+      user.wishlist.push(productId);
+      added = true;
+    }
+
+    await user.save();
+    res.json({ wishlist: user.wishlist, added });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
