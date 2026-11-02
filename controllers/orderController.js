@@ -8,6 +8,16 @@ import Product from "../models/Product.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+// Same allowlist as server.js's CORS config. Used to pick which frontend
+// to send the user back to after Stripe checkout, instead of relying on
+// a single global CLIENT_URL.
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://shopsphere-admin-omega.vercel.app",
+  "https://shopsphere-frontend-indol.vercel.app",
+];
+
 // @desc   Create order from logged-in user's cart
 // @route  POST /api/orders
 export const createOrder = async (req, res) => {
@@ -25,7 +35,9 @@ export const createOrder = async (req, res) => {
     // Validate stock before creating the order
     for (const item of cart.items) {
       if (!item.product) {
-        return res.status(400).json({ message: "A product in your cart no longer exists" });
+        return res
+          .status(400)
+          .json({ message: "A product in your cart no longer exists" });
       }
       if (item.product.stock < item.quantity) {
         return res.status(400).json({
@@ -134,10 +146,21 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
+    const wasAlreadyCancelled = order.status === "cancelled";
+
     order.status = status;
     if (status === "delivered") {
       order.isPaid = true;
       order.paidAt = Date.now();
+    }
+
+    // Restore stock when an order moves into cancelled for the first time
+    if (status === "cancelled" && !wasAlreadyCancelled) {
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { stock: item.quantity },
+        });
+      }
     }
 
     await order.save();
@@ -162,6 +185,10 @@ export const createCheckoutSession = async (req, res) => {
       return res.status(400).json({ message: "Order already paid" });
     }
 
+    const origin = allowedOrigins.includes(req.headers.origin)
+      ? req.headers.origin
+      : process.env.CLIENT_URL;
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: order.items.map((item) => ({
@@ -173,8 +200,8 @@ export const createCheckoutSession = async (req, res) => {
         quantity: item.quantity,
       })),
       metadata: { orderId: order._id.toString() },
-      success_url: `${process.env.CLIENT_URL}/orders/${order._id}?paid=true`,
-      cancel_url: `${process.env.CLIENT_URL}/orders/${order._id}?paid=false`,
+      success_url: `${origin}/orders/${order._id}?paid=true`,
+      cancel_url: `${origin}/orders/${order._id}?paid=false`,
     });
 
     order.stripeSessionId = session.id;
@@ -218,6 +245,7 @@ export const stripeWebhook = async (req, res) => {
 
   res.json({ received: true });
 };
+
 // @desc   Cancel your own order (only if still pending)
 // @route  PUT /api/orders/:id/cancel
 export const cancelOrder = async (req, res) => {
@@ -235,6 +263,14 @@ export const cancelOrder = async (req, res) => {
 
     order.status = "cancelled";
     await order.save();
+
+    // Restore stock reserved at order creation
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: { stock: item.quantity },
+      });
+    }
+
     res.json(order);
   } catch (error) {
     res.status(500).json({ message: error.message });

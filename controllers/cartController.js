@@ -1,6 +1,17 @@
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
 
+// Removes items whose product was deleted, and persists the cleanup if
+// anything was dropped. Call this after any populate('items.product').
+const pruneDeletedProducts = async (cart) => {
+  const before = cart.items.length;
+  cart.items = cart.items.filter((item) => item.product);
+  if (cart.items.length !== before) {
+    await cart.save();
+  }
+  return cart;
+};
+
 // @desc   Get logged-in user's cart
 // @route  GET /api/cart
 export const getCart = async (req, res) => {
@@ -12,6 +23,7 @@ export const getCart = async (req, res) => {
     if (!cart) {
       cart = await Cart.create({ user: req.user._id, items: [] });
     }
+    await pruneDeletedProducts(cart);
     res.json(cart);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -52,6 +64,7 @@ export const addToCart = async (req, res) => {
 
     await cart.save();
     await cart.populate("items.product", "name price images stock");
+    await pruneDeletedProducts(cart);
     res.status(201).json(cart);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -95,6 +108,7 @@ export const updateCartItem = async (req, res) => {
 
     await cart.save();
     await cart.populate("items.product", "name price images stock");
+    await pruneDeletedProducts(cart);
     res.json(cart);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -116,6 +130,7 @@ export const removeFromCart = async (req, res) => {
 
     await cart.save();
     await cart.populate("items.product", "name price images stock");
+    await pruneDeletedProducts(cart);
     res.json(cart);
   } catch (error) {
     res.status(500).json({ message: error.message });
